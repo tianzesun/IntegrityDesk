@@ -16,7 +16,7 @@ model Course {
   sessionCode          String // 20261
   sectionCode          String // S
   teachMethod          String // LEC
-  sectionNumber        String @unique // 0301
+  sectionNumber        String // 0301
   code                 String @unique // AcadActCd + sectionNumber e.g., CSC108H10301
   name                 String
   capacity             Int     @default(50) // default, adjust as needed

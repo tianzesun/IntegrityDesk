@@ -3,21 +3,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, TrendingUp, AlertTriangle, Clock, Users } from 'lucide-react'; // Using lucide icons
 
-// Mock Data for Visualization and Metrics
-const MOCK_DATA = {
-  totalDeficit: 450,
-  problemCourses: [
-    { code: 'CS101', name: 'Intro to Comp Sci', deficit: 65, avgWaitDays: 21, velocity: 15, rec: '+3 Sections' },
-    { code: 'MAT137', name: 'Calculus I', deficit: 50, avgWaitDays: 5, velocity: 5, rec: '+2 Tutorials' },
-    { code: 'HIS100', name: 'World History', deficit: 15, avgWaitDays: 32, velocity: 1, rec: 'Manual Review' },
-    { code: 'ECO101', name: 'Microeconomics', deficit: 45, avgWaitDays: 3, velocity: 20, rec: '+2 Lectures' },
-  ],
-  alerts: [
-    { type: 'CRITICAL', message: '15 Students waiting > 30 Days in HIS100.', color: 'text-red-600' },
-    { type: 'VELOCITY', message: 'ECO101 saw +40% demand growth yesterday.', color: 'text-green-600' },
-    { type: 'STAGNANT', message: 'CS101 queue is stagnant (Avg Wait: 21 Days).', color: 'text-orange-600' },
-  ],
-};
+// Types for API data
+interface DashboardData {
+  totalDeficit: number;
+  avgWaitTime: string;
+  newJoins: number;
+  problemCourses: Array<{
+    code: string;
+    name: string;
+    deficit: number;
+    avgWaitDays: number;
+    velocity: number;
+    rec: string;
+  }>;
+  alerts: Array<{
+    type: string;
+    message: string;
+    color: string;
+  }>;
+  healthData: Array<{
+    course: string;
+    waitDays: number;
+    status: string;
+  }>;
+  atRiskCount: number;
+}
 
 // Component to visualize the Gap (Deficit)
 const GapAnalysisChart = ({ course }) => {
@@ -49,18 +59,39 @@ const GapAnalysisChart = ({ course }) => {
 
 // Component for the main dashboard (App)
 const App = () => {
-  const [data, setData] = useState(MOCK_DATA);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, this would fetch data from the database/API
-  const fetchData = useCallback(() => {
-    setLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      // Data would be updated here
+  // Fetch data from API
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/dashboard');
+      const result: DashboardData = await response.json();
+      setData(result);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   }, []);
+
+  // Add error state
+  if (loading && !data) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-600">Failed to load dashboard data. Please refresh or check API.</div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchData();
