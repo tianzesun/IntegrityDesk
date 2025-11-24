@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id                   Int     @id @default(autoincrement())
+  name                 String
+  code                 String  @unique // e.g., "CS101"
+  capacity             Int     // total enrolled capacity
+  tutorial_capacity    Int     // capacity for each tutorial
+  department           String
+  enrolled_amount      Int     @default(0) // current enrolled
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  waitlists            Waitlist[]
+}
+
+model Student {
+  id          Int       @id @default(autoincrement())
+  person_id   String    @unique // identifier from system
+  email       String?
+  veteran     Boolean   @default(false) // has been waiting >30 days in any course
+  ghost_rules_violated Boolean @default(false) // on >5 waitlists same time slot
+  created_at  DateTime  @default(now())
+
+  waitlists   Waitlist[]
+}
+
+model Waitlist {
+  id              Int       @id @default(autoincrement())
+  course_id       Int
+  student_id      Int
+  sign_up_date    DateTime  @default(now())
+  position        Int       // current position
+  days_waited     Int       @default(0) // calculated
+  time_slot       String?   // e.g., "fall2025"
+  created_at      DateTime  @default(now())
+
+  course          Course    @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  student         Student   @relation(fields: [student_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id, sign_up_date])
+  @@index([student_id])
+}
