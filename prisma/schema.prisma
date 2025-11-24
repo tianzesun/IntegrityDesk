@@ -12,12 +12,19 @@ datasource db {
 
 model Course {
   id                   Int     @id @default(autoincrement())
+  AcadActCd            String // e.g., "CSC108H1"
+  sessionCode          String // 20261
+  sectionCode          String // S
+  teachMethod          String // LEC
+  sectionNumber        String @unique // 0301
+  code                 String @unique // AcadActCd + sectionNumber e.g., CSC108H10301
   name                 String
-  code                 String  @unique // e.g., "CS101"
-  capacity             Int     // total enrolled capacity
-  tutorial_capacity    Int     // capacity for each tutorial
-  department           String
-  enrolled_amount      Int     @default(0) // current enrolled
+  capacity             Int     @default(50) // default, adjust as needed
+  tutorial_capacity    Int     @default(20) // default
+  department           String  @default("CSC") // derived from code
+  enrolled_amount      Int     @default(0) // not in data, assume filled
+  avg_wait_days        Float   @default(0)
+  velocity             Float   @default(0) // signup per day
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
@@ -27,6 +34,8 @@ model Course {
 model Student {
   id          Int       @id @default(autoincrement())
   person_id   String    @unique // identifier from system
+  surname     String
+  given_name  String?
   email       String?
   veteran     Boolean   @default(false) // has been waiting >30 days in any course
   ghost_rules_violated Boolean @default(false) // on >5 waitlists same time slot

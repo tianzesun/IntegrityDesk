@@ -1,0 +1,10 @@
+PERSON_ID	SESSION_CD	ACAD_ACT_CD	SECTION_CD	TEACH_METHOD	SECTION_NR	WAITLIST_TS	SURNAME	GIVEN_NAME
+1011302537	20261 	CSC108H1	S 	LEC	0301 	 2025-11-06 21:47:30.929528	Choe                                    	Heayeon                                  
+1010927561	20261 	CSC209H1	S 	LEC	0101 	 2025-10-30 03:11:17.297722	Anwar                                   	Mohammad Haadi Rizvi                     
+1010927561	20261 	CSC209H1	S 	LEC	0201 	 2025-10-30 03:11:17.363066	Anwar                                   	Mohammad Haadi Rizvi                     
+1010927561	20261 	CSC209H1	S 	LEC	0202 	 2025-10-30 03:11:17.410245	Anwar                                   	Mohammad Haadi Rizvi                     
+1010927561	20261 	CSC209H1	S 	LEC	5101 	 2025-10-30 03:11:17.45971 	Anwar                                   	Mohammad Haadi Rizvi                     
+1010887113	20261 	CSC258H1	S 	LEC	0201 	 2025-08-20 19:50:13.5506  	Tercan                                  	Mertali Muhsin                           
+1010887113	20261 	CSC258H1	S 	LEC	0101 	 2025-08-20 20:58:46.255388	Tercan                                  	Mertali Muhsin                           
+1010927561	20261 	CSC258H1	S 	LEC	0101 	 2025-09-12 20:57:50.455068	Anwar                                   	Mohammad Haadi Rizvi                     
+1010927561	20261 	CSC258H1	S 	LEC	0201 	 2025-09-12 20:57:50.532478	Anwar                                   	Mohammad Haadi Rizvi
