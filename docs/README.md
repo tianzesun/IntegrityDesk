@@ -19,6 +19,38 @@ A comprehensive capacity planning and analytics platform for university course m
 - **Database**: PostgreSQL (Neon cloud)
 - **Data Import**: Automated processing of TSV-based CMS files
 
+### System Architecture
+
+```
+┌─────────────────┐
+│   CMS Export    │
+│   (TSV Files)   │
+└─────────┬───────┘
+          │
+          ▼
+┌─────────────────┐    ┌─────────────────┐
+│  Import Script  │───▶│   PostgreSQL    │
+│ (Node.js/Prisma)│    │   Database      │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          ▼                      ▼
+┌─────────────────┐    ┌─────────────────┐
+│  API Routes     │───▶│  Analytics      │
+│   (Next.js)     │    │  Engine         │
+└─────────┬───────┘    └─────────┬───────┘
+          │                      │
+          ▼                      ▼
+┌─────────────────┐    ┌─────────────────┐
+│   Dashboard     │    │  Platform UI    │
+│ (React/TypeScript)   │                 │
+│                     │  ├─ Capacity deficits
+│ Key Metrics:        │  ├─ Queue health status
+│ ├─ Total deficit     │  ├─ Student alerts
+│ ├─ Avg wait time     │  └─ Gap analysis charts
+│ └─ Enrollment velocity│
+└─────────────────┘    └─────────────────┘
+```
+
 ### Data Pipeline
 1. Daily CMS waitlist file (TSV format) → Import script
 2. Parse students, courses, waitlist entries → Database
