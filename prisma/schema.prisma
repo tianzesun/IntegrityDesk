@@ -20,15 +20,30 @@ model Course {
   code                 String @unique // AcadActCd + sectionNumber e.g., CSC108H10301
   name                 String
   capacity             Int     @default(50) // default, adjust as needed
-  tutorial_capacity    Int     @default(20) // default
+  tutorial_capacity    Int     @default(20) // Production Enhancement: configurable by course type
   department           String  @default("CSC") // derived from code
   enrolled_amount      Int     @default(0) // not in data, assume filled
   avg_wait_days        Float   @default(0)
-  velocity             Float   @default(0) // signup per day
+  velocity             Float   @default(0) // 7-day rolling average growth rate
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
 
   waitlists            Waitlist[]
+  capacity_config_id   String?
+  capacity_config      CourseCapacityConfig? @relation(fields: [capacity_config_id], references: [id])
+}
+
+model CourseCapacityConfig {
+  id          String  @id @default(cuid()) // configurable capacity standards
+  acadActCd   String  // course pattern like "CSC*", "MAT*"
+  teachMethod String  // LEC, TUT, LAB
+  capacity    Int     // standard capacity for this type
+  description String? // optional notes
+  active      Boolean @default(true) // can deactivate old configs
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  courses     Course[]
 }
 
 model Student {
@@ -38,7 +53,7 @@ model Student {
   given_name  String?
   email       String?
   veteran     Boolean   @default(false) // has been waiting >30 days in any course
-  ghost_rules_violated Boolean @default(false) // on >5 waitlists same time slot
+  ghost_rules_violated Boolean @default(false) // on >3 waitlists within same academic unit (simplified)
   created_at  DateTime  @default(now())
 
   waitlists   Waitlist[]
@@ -51,7 +66,7 @@ model Waitlist {
   sign_up_date    DateTime  @default(now())
   position        Int       // current position
   days_waited     Int       @default(0) // calculated
-  time_slot       String?   // e.g., "fall2025"
+  time_slot       String?   // e.g., "fall2025" - future use for advanced detection
   created_at      DateTime  @default(now())
 
   course          Course    @relation(fields: [course_id], references: [id], onDelete: Cascade)
