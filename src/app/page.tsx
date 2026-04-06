@@ -87,9 +87,8 @@ export default function Home() {
         <div className="hidden md:flex gap-7 items-center">
           <a href="#features" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Features</a>
           <a href="#how-it-works" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">How it works</a>
-          <a href="#compare" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Compare</a>
           <a href="#pricing" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Pricing</a>
-          <a href="#api" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">API</a>
+          <a href="#faq" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">FAQ</a>
         </div>
         
         <div className="flex items-center gap-2.5">
@@ -196,6 +195,49 @@ export default function Home() {
               <span className="text-[16px]">✅</span>
               <span className="text-[13px] text-[var(--t2)]">ISO 27001</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-[120px_5vw] relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
+              <div className="w-5 h-px bg-[var(--gold)]"></div>
+              How it works
+            </div>
+            <h2 className="font-display text-[clamp(32px,4.5vw,54px)] font-extrabold tracking-[-2px] leading-[1.02] mb-4.5">
+              Dead simple.<br/><span className="text-[var(--gold)]">Devastatingly effective.</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                step: '01',
+                title: 'Upload',
+                desc: 'Drag and drop any file, paste text, or connect your LMS. Code, essays, reports, presentations — we support every format.'
+              },
+              {
+                step: '02',
+                title: 'Analyze',
+                desc: 'Our engine runs 17 separate analysis layers in parallel. Deep semantic comparison, AI detection, and source tracing complete in seconds.'
+              },
+              {
+                step: '03',
+                title: 'Act',
+                desc: 'Get a full evidence report with side-by-side diffs, similarity heatmaps, and original source links. Export for disciplinary hearings.'
+              }
+            ].map((item, i) => (
+              <div key={i} className="relative">
+                <div className="text-[80px] font-display font-extrabold text-[var(--gold)] opacity-[0.08] absolute -top-5 left-0">{item.step}</div>
+                <div className="relative z-10 pt-8">
+                  <h3 className="font-display text-[20px] font-bold mb-3">{item.title}</h3>
+                  <p className="text-[15px] text-[var(--t1)] leading-[1.7]">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -398,6 +440,71 @@ export default function Home() {
           </div>
           
           <p className="text-center mt-6 text-[13px] text-[var(--t2)]">All plans include a 14-day free trial. No credit card required. Students never pay.</p>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-[100px_5vw] relative z-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
+              <div className="w-5 h-px bg-[var(--gold)]"></div>
+              Frequently asked
+            </div>
+            <h2 className="font-display text-[clamp(32px,4.5vw,48px)] font-extrabold tracking-[-2px] leading-[1.02] mb-4.5">
+              Answers to your questions
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: 'How accurate is the AI detection?',
+                a: '99.1% accuracy with 0.8% false positive rate. We are the only platform that can attribute which specific LLM generated text, not just that it was AI generated.'
+              },
+              {
+                q: 'What programming languages are supported?',
+                a: 'Over 80 languages including Python, Java, C/C++, JavaScript, Go, Rust, Swift, Kotlin, and every language used in computer science education.'
+              },
+              {
+                q: 'Do you store submitted documents?',
+                a: 'No. You control retention policies. Documents can be permanently deleted immediately after analysis, or retained for your required compliance period.'
+              },
+              {
+                q: 'Can this be deployed on-premise?',
+                a: 'Yes. Enterprise plans include fully air-gapped on-premise deployment options with zero external network calls required.'
+              },
+              {
+                q: 'Is this FERPA compliant?',
+                a: 'Yes. We are fully FERPA, COPPA, GDPR, and HIPAA compliant with signed BAAs available for healthcare education institutions.'
+              }
+            ].map((faq, i) => (
+              <div key={i} className="border border-[var(--bd)] rounded-lg p-6 bg-[var(--bg1)] hover:bg-[var(--bg2)] transition-colors">
+                <h4 className="font-display text-[17px] font-bold mb-2">{faq.q}</h4>
+                <p className="text-[14px] text-[var(--t1)] leading-[1.7]">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-[120px_5vw] bg-gradient-to-b from-[var(--bg1)] to-[var(--bg0)] relative z-10 border-t border-[var(--bd)]">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="font-display text-[clamp(36px,5vw,64px)] font-extrabold tracking-[-2.5px] leading-[1.05] mb-6">
+            Stop guessing. Start knowing.
+          </h2>
+          <p className="text-[18px] text-[var(--t1)] max-w-[560px] mx-auto mb-10 leading-[1.7]">
+            Join 2,000+ institutions that trust IntegrityDesk to protect academic integrity. Start your free trial today.
+          </p>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <a href="#" className="px-10 py-4 rounded-xl bg-[var(--gold)] text-[#080600] text-[17px] font-semibold hover:-translate-y-1 transition-transform">
+              Start free trial
+            </a>
+            <a href="#" className="px-10 py-4 rounded-xl border border-[var(--bd2)] text-[17px] font-medium hover:bg-[var(--bg2)] transition-colors">
+              Book enterprise demo
+            </a>
+          </div>
         </div>
       </section>
 
