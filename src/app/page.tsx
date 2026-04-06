@@ -4,11 +4,53 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Smooth scroll offset for fixed header
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        setTimeout(() => {
+          const element = document.querySelector(hash);
+          if (element) {
+            const y = element.getBoundingClientRect().top + window.scrollY - 80;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          }
+        }, 0);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange();
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Scroll Progress & Back To Top
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      
+      setScrollProgress(progress);
+      setShowBackToTop(scrollTop > 500);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -79,6 +121,9 @@ export default function Home() {
       <canvas ref={canvasRef} id="particles-canvas" className="fixed inset-0 z-0 pointer-events-none opacity-100" />
       
       {/* Navigation */}
+      {/* Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 h-1 bg-[var(--gold)] z-[60] transition-all" style={{ width: `${scrollProgress}%` }} />
+      
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-[5vw] h-[68px] bg-[rgba(5,6,12,0.75)] backdrop-blur-[20px] border-b border-[var(--bd)] transition-all">
         <a href="#" className="font-display text-[21px] font-extrabold tracking-[-0.5px] flex items-center gap-1">
           <span className="text-[var(--gold)]">I</span>ntegrityDesk
@@ -102,10 +147,34 @@ export default function Home() {
             <span className="absolute top-1/2 -translate-y-1/2 text-[10px] right-1.5 opacity-100">☽</span>
           </button>
           
-          <a href="#" className="px-4 py-1.75 rounded-md border border-[var(--bd2)] text-[13px] text-[var(--t1)] hover:text-[var(--t0)] transition-all">Log in</a>
-          <a href="#" className="px-5 py-2 rounded-md bg-[var(--gold)] text-[#0A0800] text-[13px] font-semibold hover:-translate-y-px transition-all">Get started free</a>
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            className="md:hidden w-10 h-10 flex flex-col gap-1.5 items-center justify-center"
+            aria-label="Toggle mobile menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            <span className={`w-5 h-0.5 bg-[var(--t0)] transition-all ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`w-5 h-0.5 bg-[var(--t0)] transition-all ${mobileMenuOpen ? 'opacity-0' : ''}`} />
+            <span className={`w-5 h-0.5 bg-[var(--t0)] transition-all ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
+          
+          <a href="#" className="hidden md:block px-4 py-1.75 rounded-md border border-[var(--bd2)] text-[13px] text-[var(--t1)] hover:text-[var(--t0)] transition-all">Log in</a>
+          <a href="#" className="hidden md:block px-5 py-2 rounded-md bg-[var(--gold)] text-[#0A0800] text-[13px] font-semibold hover:-translate-y-px transition-all">Get started free</a>
         </div>
       </nav>
+
+      {/* Mobile Navigation Menu */}
+      <div className={`fixed inset-0 z-40 bg-[var(--bg1)] pt-[68px] transition-all duration-300 md:hidden ${mobileMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
+        <div className="flex flex-col gap-6 p-8">
+          <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Features</a>
+          <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">How it works</a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Pricing</a>
+          <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">FAQ</a>
+          <div className="h-px bg-[var(--bd)] my-2" />
+          <a href="#" className="px-5 py-3 rounded-md border border-[var(--bd2)] text-center text-[var(--t1)] hover:text-[var(--t0)] transition-all">Log in</a>
+          <a href="#" className="px-5 py-3 rounded-md bg-[var(--gold)] text-center text-[#0A0800] font-semibold">Get started free</a>
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="hero min-h-screen flex flex-col items-center justify-center text-center py-[120px_5vw_80px] relative z-10">
@@ -478,12 +547,27 @@ export default function Home() {
                 q: 'Is this FERPA compliant?',
                 a: 'Yes. We are fully FERPA, COPPA, GDPR, and HIPAA compliant with signed BAAs available for healthcare education institutions.'
               }
-            ].map((faq, i) => (
-              <div key={i} className="border border-[var(--bd)] rounded-lg p-6 bg-[var(--bg1)] hover:bg-[var(--bg2)] transition-colors">
-                <h4 className="font-display text-[17px] font-bold mb-2">{faq.q}</h4>
-                <p className="text-[14px] text-[var(--t1)] leading-[1.7]">{faq.a}</p>
-              </div>
-            ))}
+            ].map((faq, i) => {
+              const [open, setOpen] = useState(false);
+              return (
+                <div key={i} 
+                  className={`border ${open ? 'border-[var(--gold)]' : 'border-[var(--bd)]'} rounded-lg overflow-hidden bg-[var(--bg1)] hover:bg-[var(--bg2)] transition-all cursor-pointer`}
+                  onClick={() => setOpen(!open)}
+                  role="button"
+                  aria-expanded={open}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
+                >
+                  <div className="flex justify-between items-center p-6">
+                    <h4 className="font-display text-[17px] font-bold">{faq.q}</h4>
+                    <span className={`text-[var(--gold)] transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>+</span>
+                  </div>
+                  <div className={`overflow-hidden transition-all duration-300 ${open ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <p className="text-[14px] text-[var(--t1)] leading-[1.7] px-6 pb-6">{faq.a}</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -509,6 +593,15 @@ export default function Home() {
       </section>
 
       {/* Footer */}
+      {/* Back To Top Button */}
+      <button 
+        onClick={scrollToTop}
+        className={`fixed bottom-6 right-6 w-12 h-12 rounded-full bg-[var(--gold)] text-[#080600] flex items-center justify-center shadow-lg z-50 transition-all ${showBackToTop ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+        aria-label="Scroll to top"
+      >
+        ↑
+      </button>
+
       <footer className="py-[60px_5vw_32px] border-t border-[var(--bd)] bg-[var(--bg0)] relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
