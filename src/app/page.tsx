@@ -166,6 +166,40 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Trusted By Section */}
+      <section className="py-[60px_5vw] border-y border-[var(--bd)] bg-[var(--bg1)] relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-center text-[11px] font-semibold tracking-[0.18em] uppercase text-[var(--t2)] mb-8">
+            TRUSTED BY LEADING INSTITUTIONS WORLDWIDE
+          </p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 items-center opacity-50">
+            {['MIT', 'Stanford', 'Harvard', 'Oxford', 'Cambridge', 'Berkeley', 'CMU', 'ETH Zurich', 'UCL', 'University of Toronto', 'Georgia Tech', 'University of Tokyo'].map((uni, i) => (
+              <div key={i} className="text-center font-display font-extrabold text-[20px] text-[var(--t1)]">{uni}</div>
+            ))}
+          </div>
+
+          <div className="flex justify-center items-center gap-8 mt-10 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">🏆</span>
+              <span className="text-[13px] text-[var(--t2)]">G2 Leader 2025</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">🔒</span>
+              <span className="text-[13px] text-[var(--t2)]">SOC 2 Type II</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">🛡️</span>
+              <span className="text-[13px] text-[var(--t2)]">FERPA Compliant</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[16px]">✅</span>
+              <span className="text-[13px] text-[var(--t2)]">ISO 27001</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-[100px_5vw] relative z-10">
         <div className="max-w-7xl mx-auto">
