@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "husky",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run type-check && npm run lint",
+    "push": "bash scripts/git-push-safe.sh"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -23,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.2.2",
+    "husky": "^9.1.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

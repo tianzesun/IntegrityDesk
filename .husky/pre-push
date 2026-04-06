@@ -1,0 +1,35 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/husky.sh"
+
+echo "✅ Running pre-push validation checks..."
+echo ""
+
+echo "🧹 Cleaning up generated build artifacts..."
+rm -rf .next
+
+echo "🔍 Checking TypeScript types..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors found. Push aborted."
+  exit 1
+fi
+echo "✅ TypeScript checks passed"
+echo ""
+
+echo "🔍 Running ESLint..."
+npx eslint .
+if [ $? -ne 0 ]; then
+  echo "❌ Linting errors found. Push aborted."
+  exit 1
+fi
+echo "✅ ESLint checks passed"
+echo ""
+
+echo "🔍 Checking git status..."
+if [ -n "$(git status --porcelain)" ]; then
+  echo "⚠️  Warning: You have uncommitted changes!"
+  echo "   These changes will NOT be pushed."
+fi
+echo ""
+
+echo "✅ All pre-push checks passed. Proceeding with push."
