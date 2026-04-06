@@ -126,12 +126,12 @@ export default function Home() {
             <span>Rated #1 Academic Integrity Platform — 2,000+ Institutions</span>
           </div>
 
-          <h1 className="font-display text-[clamp(44px,7vw,88px)] font-extrabold leading-[0.98] tracking-[-3px] mb-1.5 animate-fadeUp">
+          <h1 className="font-display text-[clamp(40px,6vw,76px)] font-extrabold leading-[1.1] tracking-[-3px] mb-2 animate-fadeUp">
             The World's Most Powerful
           </h1>
 
-          <div className="h-[clamp(48px,8vw,96px)] overflow-hidden mb-7 animate-fadeUp">
-            <span className="block font-display text-[clamp(44px,7vw,88px)] font-extrabold leading-1 tracking-[-3px] text-[var(--teal)]">
+          <div className="overflow-hidden mb-7 animate-fadeUp">
+            <span className="block font-display text-[clamp(40px,6vw,76px)] font-extrabold leading-[1.1] tracking-[-3px] text-[var(--teal)]">
               Integrity Platform.
             </span>
           </div>
