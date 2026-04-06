@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Outfit } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -30,6 +31,7 @@ export default function RootLayout({
         className={`${bricolage.variable} ${outfit.variable} font-body antialiased`}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
