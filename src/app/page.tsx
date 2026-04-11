@@ -7,14 +7,34 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const prefersReducedMotionRef = useRef(false);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const storedTheme = window.localStorage.getItem('integritydesk-theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        setTheme(storedTheme);
+        return;
+      }
+
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      setTheme(mediaQuery.matches ? 'dark' : 'light');
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    window.localStorage.setItem('integritydesk-theme', theme);
   }, [theme]);
 
   // Smooth scroll offset for fixed header
   useEffect(() => {
+    prefersReducedMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash) {
@@ -22,7 +42,7 @@ export default function Home() {
           const element = document.querySelector(hash);
           if (element) {
             const y = element.getBoundingClientRect().top + window.scrollY - 80;
-            window.scrollTo({ top: y, behavior: 'smooth' });
+            window.scrollTo({ top: y, behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth' });
           }
         }, 0);
       }
@@ -34,22 +54,49 @@ export default function Home() {
 
   // Scroll Progress & Back To Top
   useEffect(() => {
-    const handleScroll = () => {
+    let ticking = false;
+
+    const updateScrollState = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      
+
       setScrollProgress(progress);
       setShowBackToTop(scrollTop > 500);
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(updateScrollState);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
+    updateScrollState();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth' });
   };
 
   const toggleTheme = () => {
@@ -63,16 +110,26 @@ export default function Home() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    resizeCanvas();
     
     const particles: Array<{x: number, y: number, r: number, vx: number, vy: number, a: number}> = [];
-    const count = Math.floor((canvas.width * canvas.height) / 14000);
+    const area = window.innerWidth * window.innerHeight;
+    const count = reducedMotion ? 0 : Math.min(140, Math.floor(area / 18000));
     
     for (let i = 0; i < count; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
         r: Math.random() * 1.2 + 0.3,
         vx: (Math.random() - 0.5) * 0.25,
         vy: (Math.random() - 0.5) * 0.25,
@@ -83,15 +140,15 @@ export default function Home() {
     let animFrame: number;
 
     const loop = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       const gold = theme === 'dark' ? '232,197,71' : '184,144,10';
       
       particles.forEach(p => {
         p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+        if (p.x < 0) p.x = window.innerWidth;
+        if (p.x > window.innerWidth) p.x = 0;
+        if (p.y < 0) p.y = window.innerHeight;
+        if (p.y > window.innerHeight) p.y = 0;
         
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -102,17 +159,18 @@ export default function Home() {
       animFrame = requestAnimationFrame(loop);
     };
 
-    loop();
+    if (!reducedMotion) {
+      loop();
+    } else {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    }
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', resizeCanvas);
     return () => {
-      cancelAnimationFrame(animFrame);
-      window.removeEventListener('resize', handleResize);
+      if (animFrame) {
+        cancelAnimationFrame(animFrame);
+      }
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, [theme]);
 
@@ -124,14 +182,16 @@ export default function Home() {
       {/* Scroll Progress Bar */}
       <div className="fixed top-0 left-0 h-1 bg-[var(--gold)] z-[60] transition-all" style={{ width: `${scrollProgress}%` }} />
       
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-[5vw] h-[68px] bg-[rgba(5,6,12,0.75)] backdrop-blur-[20px] border-b border-[var(--bd)] transition-all">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-[5vw] h-[68px] bg-[var(--nav-bg)] backdrop-blur-[20px] border-b border-[var(--bd)] transition-all">
         <a href="#" className="font-display text-[21px] font-extrabold tracking-[-0.5px] flex items-center gap-1">
           <span className="text-[var(--gold)]">I</span>ntegrityDesk
         </a>
         
         <div className="hidden md:flex gap-7 items-center">
-          <a href="#features" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Features</a>
-          <a href="#how-it-works" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">How it works</a>
+          <a href="#product" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Product</a>
+          <a href="#why-it-wins" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Why It Wins</a>
+          <a href="#live-demo" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Live Demo</a>
+          <a href="#architecture" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Architecture</a>
           <a href="#pricing" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Pricing</a>
           <a href="#faq" className="text-[14px] text-[var(--t1)] hover:text-[var(--t0)] transition-colors">FAQ</a>
         </div>
@@ -141,10 +201,11 @@ export default function Home() {
             onClick={toggleTheme}
             className="w-11 h-6 rounded-full bg-[var(--bg3)] border border-[var(--bd2)] cursor-pointer relative transition-all"
             aria-label="Toggle theme"
+            aria-pressed={theme === 'light'}
           >
             <div className={`absolute top-[3px] w-4 h-4 rounded-full bg-[var(--gold)] transition-all ${theme === 'light' ? 'left-[24px]' : 'left-[3px]'}`} />
-            <span className="absolute top-1/2 -translate-y-1/2 text-[10px] left-1.5 opacity-0">☀</span>
-            <span className="absolute top-1/2 -translate-y-1/2 text-[10px] right-1.5 opacity-100">☽</span>
+            <span className={`absolute top-1/2 -translate-y-1/2 text-[10px] left-1.5 transition-opacity ${theme === 'light' ? 'opacity-100' : 'opacity-35'}`}>☀</span>
+            <span className={`absolute top-1/2 -translate-y-1/2 text-[10px] right-1.5 transition-opacity ${theme === 'dark' ? 'opacity-100' : 'opacity-35'}`}>☽</span>
           </button>
           
           <button 
@@ -166,8 +227,10 @@ export default function Home() {
       {/* Mobile Navigation Menu */}
       <div className={`fixed inset-0 z-40 bg-[var(--bg1)] pt-[68px] transition-all duration-300 md:hidden ${mobileMenuOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
         <div className="flex flex-col gap-6 p-8">
-          <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Features</a>
-          <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">How it works</a>
+          <a href="#product" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Product</a>
+          <a href="#why-it-wins" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Why It Wins</a>
+          <a href="#live-demo" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Live Demo</a>
+          <a href="#architecture" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Architecture</a>
           <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">Pricing</a>
           <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-xl text-[var(--t1)] hover:text-[var(--t0)] transition-colors">FAQ</a>
           <div className="h-px bg-[var(--bd)] my-2" />
@@ -205,14 +268,14 @@ export default function Home() {
           </div>
 
           <p className="text-[clamp(16px,2vw,19px)] text-[var(--t1)] max-w-[560px] mx-auto mb-11 font-light leading-[1.65] animate-fadeUp">
-            IntegrityDesk is the only platform that unifies code plagiarism, essay detection, and AI content tracing — with unprecedented accuracy, speed, and evidence-grade reporting.
+            IntegrityDesk is the first integrity platform built around multiple engines, assignment-specific weighting, and preset review modes.
           </p>
 
           <div className="flex gap-3 justify-center flex-wrap mb-16 animate-fadeUp">
             <a href="#" className="px-9 py-3.75 rounded-xl bg-[var(--gold)] text-[#080600] text-[16px] font-semibold hover:-translate-y-0.75 transition-transform">
               Start free — no card needed →
             </a>
-            <a href="#" className="px-9 py-3.75 rounded-xl border border-[var(--bd2)] text-[16px] font-normal hover:bg-[var(--bg2)] transition-colors">
+            <a href="#live-demo" className="px-9 py-3.75 rounded-xl border border-[var(--bd2)] text-[16px] font-normal hover:bg-[var(--bg2)] transition-colors">
               Watch 2-min demo
             </a>
           </div>
@@ -220,9 +283,10 @@ export default function Home() {
           <div className="flex flex-wrap justify-center border border-[var(--bd)] rounded-xl overflow-hidden bg-[var(--bg1)] animate-fadeUp">
             {[
               { value: '500B+', label: 'Sources indexed' },
+              { value: '17', label: 'Signals fused per review' },
               { value: '< 8s', label: 'Average check time' },
+              { value: '4', label: 'Preset review modes' },
               { value: '99.1%', label: 'Detection accuracy' },
-              { value: '0.8%', label: 'False positive rate' },
               { value: '2,000+', label: 'Universities trust us' },
             ].map((stat, i) => (
               <div key={i} className="px-8 py-4.5 text-center border-r border-[var(--bd)] last:border-r-0 hover:bg-[var(--bg2)] transition-colors">
@@ -268,6 +332,306 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Advantage Section */}
+      <section id="why-it-wins" className="py-[110px_5vw] relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
+              <div className="w-5 h-px bg-[var(--gold)]"></div>
+              Why it wins
+            </div>
+            <h2 className="font-display text-[clamp(32px,4.5vw,54px)] font-extrabold tracking-[-2px] leading-[1.02] mb-4.5">
+              Built for nuance.<br/><span className="text-[var(--gold)]">Not generic scoring.</span>
+            </h2>
+            <p className="text-[17px] text-[var(--t1)] max-w-[760px] mx-auto leading-[1.65] font-light">
+              Most tools use one fixed formula for every assignment. IntegrityDesk adapts engine weighting by assignment type.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+            <div className="border border-[var(--bd)] rounded-2xl overflow-hidden bg-[var(--bg1)]">
+              <div className="grid grid-cols-[1fr_1fr] border-b border-[var(--bd)]">
+                <div className="p-6 border-r border-[var(--bd)]">
+                  <div className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--t2)] mb-2">Typical tools</div>
+                  <h3 className="font-display text-[22px] font-bold tracking-[-0.5px]">One score for everything</h3>
+                </div>
+                <div className="p-6 bg-[rgba(232,197,71,0.04)]">
+                  <div className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--gold)] mb-2">IntegrityDesk</div>
+                  <h3 className="font-display text-[22px] font-bold tracking-[-0.5px]">Adaptive, evidence-first analysis</h3>
+                </div>
+              </div>
+
+              {[
+                {
+                  label: 'Detection model',
+                  basic: 'One score is reused across every submission type.',
+                  advanced: 'Multiple engines score structure, sources, authorship, peer overlap, and AI probability together.'
+                },
+                {
+                  label: 'Assignment fit',
+                  basic: 'The same weighting is applied to essays, code, and lab work.',
+                  advanced: 'Weights can be rebalanced so code-heavy work is judged differently from citation-heavy writing.'
+                },
+                {
+                  label: 'Instructor control',
+                  basic: 'Teams get a threshold slider and hope it generalizes.',
+                  advanced: 'Preset modes give fast defaults, with optional custom weighting.'
+                },
+                {
+                  label: 'Decision quality',
+                  basic: 'Investigations start from a flag and manual interpretation.',
+                  advanced: 'Reports explain why a case was flagged and what evidence deserves follow-up.'
+                }
+              ].map((row, i) => (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-[180px_1fr_1fr] border-b border-[var(--bd)] last:border-b-0">
+                  <div className="p-5 md:p-6 text-[12px] font-semibold tracking-[0.08em] uppercase text-[var(--t2)] border-b md:border-b-0 md:border-r border-[var(--bd)]">
+                    {row.label}
+                  </div>
+                  <div className="p-5 md:p-6 text-[14px] text-[var(--t1)] leading-[1.7] border-b md:border-b-0 md:border-r border-[var(--bd)]">
+                    {row.basic}
+                  </div>
+                  <div className="p-5 md:p-6 text-[14px] text-[var(--t0)] leading-[1.7]">
+                    {row.advanced}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid gap-5">
+              {[
+                {
+                  title: 'Multi-engine consensus',
+                  desc: 'No single detector dominates the decision. Signals are fused into one balanced result.',
+                  tag: 'Higher-confidence reviews'
+                },
+                {
+                  title: 'Assignment-specific weighting',
+                  desc: 'A coding task should not be scored like a literature review. IntegrityDesk reflects that.',
+                  tag: 'Designed for academic reality'
+                },
+                {
+                  title: 'Preset review modes',
+                  desc: 'Departments can standardize reviews quickly without losing nuance.',
+                  tag: 'Fast to adopt'
+                }
+              ].map((item, i) => (
+                <div key={i} className="bg-[var(--bg1)] border border-[var(--bd)] rounded-xl p-7 hover:bg-[var(--bg2)] transition-colors">
+                  <div className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--teal)] mb-3">{item.tag}</div>
+                  <h3 className="font-display text-[20px] font-bold tracking-[-0.5px] mb-3">{item.title}</h3>
+                  <p className="text-[15px] text-[var(--t1)] leading-[1.75]">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+                {
+                  value: 'Fewer blanket flags',
+                  desc: 'Assignment-aware weighting reduces noise.'
+                },
+                {
+                  value: 'Faster triage',
+                  desc: 'Preset modes speed up review.'
+                },
+                {
+                  value: 'Stronger evidence',
+                  desc: 'Evidence-chain reporting supports committees, Deans, and administrators.'
+                },
+                {
+                  value: 'Consistent policy',
+                  desc: 'Departments can standardize reviews across courses.'
+                }
+              ].map((item, i) => (
+              <div key={i} className="bg-[var(--bg1)] border border-[var(--bd)] rounded-xl p-7">
+                <h3 className="font-display text-[22px] font-bold tracking-[-0.5px] mb-3">{item.value}</h3>
+                <p className="text-[14px] text-[var(--t1)] leading-[1.75]">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Live Demo Section */}
+      <section id="live-demo" className="py-[110px_5vw] relative z-10">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
+              <div className="w-5 h-px bg-[var(--gold)]"></div>
+              Live demo
+            </div>
+            <h2 className="font-display text-[clamp(32px,4.5vw,54px)] font-extrabold tracking-[-2px] leading-[1.02] mb-4.5">
+              See a review move from<br/><span className="text-[var(--gold)]">submission to evidence.</span>
+            </h2>
+            <p className="text-[17px] text-[var(--t1)] max-w-[720px] mx-auto leading-[1.65] font-light">
+              See what faculty care about: what was submitted, what the engines found, and what evidence is ready.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
+            <div className="bg-[var(--bg1)] border border-[var(--bd)] rounded-2xl overflow-hidden">
+              <div className="border-b border-[var(--bd)] px-7 py-5 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--teal)] mb-2">Demo case</div>
+                  <h3 className="font-display text-[24px] font-bold tracking-[-0.5px]">Assignment Review Workspace</h3>
+                </div>
+                <span className="inline-block text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--gold)] border border-[rgba(232,197,71,0.22)] rounded px-2 py-1">Take-home coding preset</span>
+              </div>
+
+              <div className="p-7">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                  {[
+                    { label: 'Overall risk', value: '0.87', tone: 'text-[var(--gold)]' },
+                    { label: 'Consensus index', value: '0.93', tone: 'text-[var(--teal)]' },
+                    { label: 'Review status', value: 'High', tone: 'text-[var(--t0)]' },
+                  ].map((item, i) => (
+                    <div key={i} className="rounded-xl border border-[var(--bd)] bg-[var(--bg0)] p-4">
+                      <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--t2)] mb-2">{item.label}</div>
+                      <div className={`font-display text-[30px] font-extrabold tracking-[-1px] ${item.tone}`}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  {[
+                    { engine: 'AST / structure', score: '0.91', note: 'High structural equivalence after normalization' },
+                    { engine: 'Cross-language / semantic', score: '0.84', note: 'Behavior and flow remain aligned' },
+                    { engine: 'Peer similarity', score: '0.79', note: 'Candidate surfaced from indexed retrieval' },
+                    { engine: 'AI tracing', score: '0.41', note: 'Useful context, but not dominant' },
+                  ].map((row, i) => (
+                    <div key={i} className="grid grid-cols-[1fr_auto] gap-4 rounded-xl border border-[var(--bd)] bg-[var(--bg0)] p-4 items-start">
+                      <div>
+                        <div className="font-display text-[17px] font-bold tracking-[-0.3px] mb-1">{row.engine}</div>
+                        <div className="text-[13px] text-[var(--t1)] leading-[1.7]">{row.note}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--t2)] mb-1">Signal</div>
+                        <div className="font-display text-[24px] font-extrabold tracking-[-0.6px] text-[var(--gold)]">{row.score}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-5">
+              {[
+                {
+                  title: '1. Candidate surfaced fast',
+                  desc: 'Indexed retrieval narrows the dataset before deeper analysis runs.'
+                },
+                {
+                  title: '2. Preset selects the right emphasis',
+                  desc: 'The coding preset increases structural and semantic weight while keeping AI signals in context.'
+                },
+                {
+                  title: '3. Fusion produces one defensible score',
+                  desc: 'Weighted scoring turns multiple engine outputs into one defensible result.'
+                },
+                {
+                  title: '4. Evidence is ready to export',
+                  desc: 'The reviewer gets a full evidence chain ready for export.'
+                }
+              ].map((item, i) => (
+                <div key={i} className="bg-[var(--bg1)] border border-[var(--bd)] rounded-xl p-7 hover:bg-[var(--bg2)] transition-colors">
+                  <h3 className="font-display text-[20px] font-bold tracking-[-0.5px] mb-3">{item.title}</h3>
+                  <p className="text-[14px] text-[var(--t1)] leading-[1.75]">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Architecture Section */}
+      <section id="architecture" className="py-[110px_5vw] bg-[var(--bg1)] relative z-10 border-y border-[var(--bd)]">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
+              <div className="w-5 h-px bg-[var(--gold)]"></div>
+              Six-layer architecture
+            </div>
+            <h2 className="font-display text-[clamp(32px,4.5vw,54px)] font-extrabold tracking-[-2px] leading-[1.02] mb-4.5">
+              Accuracy is engineered<br/><span className="text-[var(--gold)]">layer by layer.</span>
+            </h2>
+            <p className="text-[17px] text-[var(--t1)] max-w-[760px] mx-auto leading-[1.65] font-light">
+              Every review moves through six layers designed to improve speed, accuracy, and false-positive control.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              {
+                step: '01',
+                title: 'Feature Extraction Layer',
+                desc: 'Code is normalized into stable signatures across structural, token, fingerprint, embedding, and winnowing views.'
+              },
+              {
+                step: '02',
+                title: 'Indexing / Retrieval Layer',
+                desc: 'MinHash, LSH, and vector search keep lookup fast across large datasets.'
+              },
+              {
+                step: '03',
+                title: 'Candidate Generation Layer',
+                desc: 'Fast retrieval narrows the search space, then reranking orders the strongest candidates.'
+              },
+              {
+                step: '04',
+                title: 'Fusion / Scoring Layer',
+                desc: 'Weighted fusion and Bayesian arbitration combine multiple engine outputs into one score.'
+              },
+              {
+                step: '05',
+                title: 'Explainability Layer',
+                desc: 'Heatmaps, diffs, engine breakdowns, and evidence-chain reports show why a case deserves review.'
+              },
+              {
+                step: '06',
+                title: 'Calibration Layer',
+                desc: 'Threshold optimization and confidence calibration reduce false positives.'
+              }
+            ].map((layer, i) => (
+              <div key={i} className="bg-[var(--bg0)] border border-[var(--bd)] rounded-xl p-8 hover:bg-[var(--bg2)] transition-colors">
+                <div className="mb-5">
+                  <span className="font-display text-[34px] font-extrabold tracking-[-1px] text-[var(--gold)]">{layer.step}</span>
+                </div>
+                <h3 className="font-display text-[21px] font-bold tracking-[-0.5px] mb-3">{layer.title}</h3>
+                <p className="text-[14px] text-[var(--t1)] leading-[1.75]">{layer.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 bg-[var(--bg0)] border border-[var(--bd)] rounded-2xl p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+              <div>
+                <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3">What this means</div>
+                <h3 className="font-display text-[30px] font-extrabold tracking-[-1px] leading-[1.1] mb-4">
+                  More sensitive than a single engine. More selective than a generic threshold.
+                </h3>
+                <p className="text-[15px] text-[var(--t1)] leading-[1.8]">
+                  Retrieval keeps the system fast, fusion keeps decisions balanced, and calibration keeps thresholds trustworthy.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  'Normalized signatures reduce superficial noise',
+                  'Indexed retrieval avoids slow brute-force scans',
+                  'Candidate reranking sharpens review priority',
+                  'Weighted scoring reflects engine strength',
+                  'Evidence exports support committee review',
+                  'Calibration reduces false-positive drift'
+                ].map((item, i) => (
+                  <div key={i} className="rounded-lg border border-[var(--bd)] bg-[var(--bg1)] px-4 py-3 text-[13px] text-[var(--t1)]">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works Section */}
       <section id="how-it-works" className="py-[120px_5vw] relative z-10">
         <div className="max-w-7xl mx-auto">
@@ -286,17 +650,17 @@ export default function Home() {
               {
                 step: '01',
                 title: 'Upload',
-                desc: 'Drag and drop any file, paste text, or connect your LMS. Code, essays, reports, presentations — we support every format.'
+                desc: 'Upload files, paste text, or connect your LMS.'
               },
               {
                 step: '02',
-                title: 'Analyze',
-                desc: 'Our engine runs 17 separate analysis layers in parallel. Deep semantic comparison, AI detection, and source tracing complete in seconds.'
+                title: 'Tune',
+                desc: 'Choose a preset mode or set assignment-specific weights.'
               },
               {
                 step: '03',
                 title: 'Act',
-                desc: 'Get a full evidence report with side-by-side diffs, similarity heatmaps, and original source links. Export for disciplinary hearings.'
+                desc: 'Get an evidence report with diffs, heatmaps, and source links.'
               }
             ].map((item, i) => (
               <div key={i} className="relative">
@@ -308,11 +672,77 @@ export default function Home() {
               </div>
             ))}
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 mt-16">
+            <div className="bg-[var(--bg1)] border border-[var(--bd)] rounded-2xl p-8">
+              <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3">Engine studio</div>
+              <h3 className="font-display text-[30px] font-extrabold tracking-[-1px] leading-[1.1] mb-4">
+                The first review workflow designed around assignment types.
+              </h3>
+              <p className="text-[15px] text-[var(--t1)] leading-[1.75] mb-6">
+                Faculty can start from presets, then fine-tune engine influence to match the assignment.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  'Code similarity engine',
+                  'Cross-language structure match',
+                  'AI authorship tracer',
+                  'Source overlap & citation scan',
+                  'Peer cluster detection',
+                  'Evidence confidence synthesis'
+                ].map((item, i) => (
+                  <div key={i} className="rounded-lg border border-[var(--bd)] bg-[var(--bg2)] px-4 py-3 text-[13px] text-[var(--t1)]">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {[
+                {
+                  preset: 'Take-home coding',
+                  weights: ['Code structure 40%', 'Cross-language 25%', 'Peer similarity 20%', 'AI tracing 15%'],
+                  desc: 'Prioritizes algorithmic equivalence, semantic reuse, and cohort-level coordination.'
+                },
+                {
+                  preset: 'Research essay',
+                  weights: ['Source overlap 35%', 'Citation integrity 25%', 'AI tracing 25%', 'Peer similarity 15%'],
+                  desc: 'Tuned for source-heavy work where improper borrowing and synthetic writing are the main risks.'
+                },
+                {
+                  preset: 'Lab report',
+                  weights: ['Source overlap 30%', 'AI tracing 30%', 'Pattern similarity 25%', 'Peer similarity 15%'],
+                  desc: 'Balances expected template reuse against suspicious phrasing, fabricated explanation, and repeated structure.'
+                },
+                {
+                  preset: 'Reflective writing',
+                  weights: ['AI tracing 45%', 'Language variance 25%', 'Source overlap 15%', 'Peer similarity 15%'],
+                  desc: 'Reduces false alarms on shared prompts while focusing on authorship authenticity and voice consistency.'
+                }
+              ].map((preset, i) => (
+                <div key={i} className="bg-[var(--bg1)] border border-[var(--bd)] rounded-xl p-6 hover:bg-[var(--bg2)] transition-colors">
+                  <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                    <h4 className="font-display text-[20px] font-bold tracking-[-0.5px]">{preset.preset}</h4>
+                    <span className="inline-block text-[10px] font-semibold tracking-[0.08em] uppercase text-[var(--gold)] border border-[rgba(232,197,71,0.22)] rounded px-2 py-1">Preset mode</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {preset.weights.map((weight, index) => (
+                      <span key={index} className="text-[11px] font-semibold tracking-[0.04em] uppercase text-[var(--t1)] border border-[var(--bd)] rounded-full px-3 py-1.5 bg-[var(--bg2)]">
+                        {weight}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[14px] text-[var(--t1)] leading-[1.7]">{preset.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-[100px_5vw] relative z-10">
+      <section id="product" className="py-[100px_5vw] relative z-10">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[var(--gold)] mb-3.5 flex items-center justify-center gap-2">
@@ -323,7 +753,7 @@ export default function Home() {
               Every capability you'll<br/><span className="text-[var(--gold)]">ever need.</span>
             </h2>
             <p className="text-[17px] text-[var(--t1)] max-w-[500px] mx-auto leading-[1.65] font-light">
-              IntegrityDesk isn't a point tool — it's the complete integrity operating system for modern academic institutions.
+              IntegrityDesk is the complete integrity operating system for modern academic institutions.
             </p>
           </div>
           
@@ -348,6 +778,18 @@ export default function Home() {
                 tag: 'GPT · Gemini · Claude · Llama'
               },
               {
+                icon: '🎚️',
+                title: 'Adaptive Engine Weighting',
+                desc: 'Set how much each engine matters for code projects, lab reports, research essays, reflective writing, or custom assessment formats. The scoring model bends to the assignment, not the other way around.',
+                tag: 'Assignment-aware'
+              },
+              {
+                icon: '🧠',
+                title: 'Preset Review Modes',
+                desc: 'Standardize reviews across a department with presets like Balanced, Code-Heavy, AI-Sensitive, and Source Audit. Faculty get consistency without losing expert control.',
+                tag: 'Fast + flexible'
+              },
+              {
                 icon: '📡',
                 title: 'Deep Web Crawl',
                 desc: '500B+ sources: GitHub, GitLab, Stack Overflow, arXiv, PubMed, Wikipedia, Chegg, Course Hero, and the live web — crawled daily. Nothing hides for long.',
@@ -368,8 +810,14 @@ export default function Home() {
               {
                 icon: '⚖️',
                 title: 'Hearing-Grade Reports',
-                desc: 'Digitally signed, timestamped PDF reports with source URLs, similarity percentages, and side-by-side diffs. Built specifically for academic disciplinary hearings.',
+                desc: 'Digitally signed, timestamped PDF reports with source URLs, similarity percentages, side-by-side diffs, and full evidence-chain context. Built for disciplinary hearings, Deans, and academic integrity committees.',
                 tag: 'Evidence-ready'
+              },
+              {
+                icon: '🪜',
+                title: 'Explainable Risk Breakdown',
+                desc: 'See which engines contributed to a flag and how strongly. Reviewers can tell the difference between source borrowing, AI authorship risk, and coordinated peer reuse before escalating.',
+                tag: 'Transparent decisions'
               },
               {
                 icon: '🛡',
@@ -428,6 +876,7 @@ export default function Home() {
                   'Code plagiarism — 80+ languages',
                   'Essay & document detection',
                   'AI detection (generic flag)',
+                  'Balanced review preset',
                   'Web & peer comparison',
                   'PDF report export',
                   'Email support'
@@ -460,6 +909,8 @@ export default function Home() {
                   'AI model attribution (GPT, Gemini, Claude…)',
                   'Sentence-level AI heatmaps',
                   'Humanization tool detection',
+                  'Assignment-specific engine weighting',
+                  'Department-level preset templates',
                   'Cross-language code detection',
                   'LMS integration — Canvas, Moodle, Blackboard',
                   'Cohort cluster visualizations',
@@ -491,6 +942,7 @@ export default function Home() {
                   'Dedicated SLA & uptime guarantee',
                   'Custom data retention policies',
                   'GitHub Classroom integration',
+                  'Custom integrity policy presets',
                   'Custom branding on all reports',
                   'Dedicated customer success manager',
                   'Annual contract with volume discounts'
@@ -532,6 +984,18 @@ export default function Home() {
                 a: '99.1% accuracy with 0.8% false positive rate. We are the only platform that can attribute which specific LLM generated text, not just that it was AI generated.'
               },
               {
+                q: 'What makes IntegrityDesk different from other integrity tools?',
+                a: 'Most products rely on one fixed scoring model. IntegrityDesk combines multiple engines and lets teams tune their weighting by assignment type, which produces more context-aware and defensible results.'
+              },
+              {
+                q: 'Can we create different presets for essays, code, and lab reports?',
+                a: 'Yes. Preset review modes are built for exactly that workflow. You can standardize settings per assignment category, then refine engine emphasis for departments with stricter or more flexible review policies.'
+              },
+              {
+                q: 'Can IntegrityDesk generate a report for Deans or formal academic integrity cases?',
+                a: 'Yes. IntegrityDesk can produce evidence-chain reports that package the case summary, engine rationale, source links, diffs, and supporting context into a format suitable for Deans, academic integrity offices, and formal review processes.'
+              },
+              {
                 q: 'What programming languages are supported?',
                 a: 'Over 80 languages including Python, Java, C/C++, JavaScript, Go, Rust, Swift, Kotlin, and every language used in computer science education.'
               },
@@ -548,15 +1012,15 @@ export default function Home() {
                 a: 'Yes. We are fully FERPA, COPPA, GDPR, and HIPAA compliant with signed BAAs available for healthcare education institutions.'
               }
             ].map((faq, i) => {
-              const [open, setOpen] = useState(false);
+              const open = openFaqIndex === i;
               return (
                 <div key={i} 
                   className={`border ${open ? 'border-[var(--gold)]' : 'border-[var(--bd)]'} rounded-lg overflow-hidden bg-[var(--bg1)] hover:bg-[var(--bg2)] transition-all cursor-pointer`}
-                  onClick={() => setOpen(!open)}
+                  onClick={() => setOpenFaqIndex(open ? null : i)}
                   role="button"
                   aria-expanded={open}
                   tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setOpen(!open)}
+                  onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setOpenFaqIndex(open ? null : i)}
                 >
                   <div className="flex justify-between items-center p-6">
                     <h4 className="font-display text-[17px] font-bold">{faq.q}</h4>
@@ -653,6 +1117,7 @@ export default function Home() {
           --bg1: #0C0F1A;
           --bg2: #131725;
           --bg3: #1C2133;
+          --nav-bg: rgba(5,6,12,0.75);
           --t0: #F2EEE5;
           --t1: #9396A8;
           --t2: #555869;
@@ -673,6 +1138,7 @@ export default function Home() {
           --bg1: #EEEAE0;
           --bg2: #E4DFCF;
           --bg3: #D8D2C0;
+          --nav-bg: rgba(248,246,240,0.88);
           --t0: #0F1018;
           --t1: #4A4C5E;
           --t2: #8C8E9E;
@@ -728,6 +1194,17 @@ export default function Home() {
         
         html {
           scroll-behavior: smooth;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          html {
+            scroll-behavior: auto;
+          }
+
+          .animate-fadeSlideDown,
+          .animate-fadeUp {
+            animation: none;
+          }
         }
         
         ::-webkit-scrollbar {
